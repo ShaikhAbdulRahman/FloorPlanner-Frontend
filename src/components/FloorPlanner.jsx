@@ -50,7 +50,7 @@ const FloorPlanner = () => {
     severity: "success",
   });
 
-  const API_BASE = "http://localhost:8000/api/floorplan";
+  const API_BASE = "https://floorplan-backend.vercel.app/api/floorplan";
 
   useEffect(() => {
     fetchFloorPlan();
