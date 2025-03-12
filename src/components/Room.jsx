@@ -1,8 +1,6 @@
 import React from "react";
 import { Rect, Text, Group, Transformer, Circle } from "react-konva";
 import DoorOrWindow from "./DoorOrWindow";
-import { Trash2 } from "lucide-react";
-import { IconButton } from "@mui/material";
 
 const Room = ({
   room,
@@ -40,6 +38,27 @@ const Room = ({
       ),
     });
   };
+
+  // Create a delete button using Konva components instead of MUI
+  const DeleteButton = ({ onClick }) => (
+    <Group
+      x={room.x + room.width}
+      y={room.y - 20}
+      onClick={onClick}
+      onTap={onClick}
+    >
+      <Circle radius={12} fill="white" stroke="#333" strokeWidth={1} />
+      <Text
+        text="✕"
+        fontSize={16}
+        fill="#f44336"
+        align="center"
+        verticalAlign="middle"
+        x={-6}
+        y={-8}
+      />
+    </Group>
+  );
 
   return (
     <Group>
@@ -88,23 +107,7 @@ const Room = ({
       />
 
       {isSelected && (
-        <IconButton
-        size="small"
-        sx={{
-          position: "absolute",
-          top: "-20px",
-          right: "-20px",
-          backgroundColor: "white",
-          "&:hover": {
-            backgroundColor: "error.light",
-            color: "white",
-          },
-          boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-        }}
-        onClick={() => onDeleteItem(room.id, "room")}
-        >
-        <Trash2 size={20} />
-      </IconButton>
+        <DeleteButton onClick={() => onDeleteItem(room.id, "room")} />
       )}
 
       {doors &&
