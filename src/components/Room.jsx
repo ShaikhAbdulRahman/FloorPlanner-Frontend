@@ -39,7 +39,6 @@ const Room = ({
     });
   };
 
-  // Create a delete button using Konva components instead of MUI
   const DeleteButton = ({ onClick }) => (
     <Group
       x={room.x + room.width}
