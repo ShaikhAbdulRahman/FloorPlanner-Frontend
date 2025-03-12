@@ -1,5 +1,5 @@
 import React from "react";
-import { Rect, Group, Transformer } from "react-konva";
+import { Group, Rect, Circle, Text } from "react-konva";
 
 const DoorOrWindow = ({
   item,
@@ -8,167 +8,124 @@ const DoorOrWindow = ({
   onSelect,
   onChange,
   type,
+  onDelete,
 }) => {
-  const shapeRef = React.useRef();
-  const trRef = React.useRef();
-
-  React.useEffect(() => {
-    if (isSelected) {
-      trRef.current.nodes([shapeRef.current]);
-      trRef.current.getLayer().batchDraw();
-    }
-  }, [isSelected]);
-
-  const getSize = () => {
-    const isHorizontal = item.position === "top" || item.position === "bottom";
-    return {
-      width: isHorizontal ? item.width : 10,
-      height: isHorizontal ? 10 : item.width,
-    };
-  };
-
-  const calculatePosition = () => {
-    const { x, y, width, length } = roomData;
-    let itemX = x;
-    let itemY = y;
-
-    switch (item.position) {
+  const getPosition = () => {
+    const { position, offset, width } = item;
+    const { x, y, width: roomWidth, length: roomLength } = roomData;
+    
+    switch (position) {
       case "top":
-        itemX = x + item.offset;
-        break;
+        return {
+          x: x + offset - width / 2,
+          y: y,
+          rotation: 0,
+        };
       case "right":
-        itemX = x + width - 10;
-        itemY = y + item.offset;
-        break;
+        return {
+          x: x + roomWidth,
+          y: y + offset - width / 2,
+          rotation: 90,
+        };
       case "bottom":
-        itemX = x + item.offset;
-        itemY = y + length - 10;
-        break;
+        return {
+          x: x + offset - width / 2,
+          y: y + roomLength,
+          rotation: 0,
+        };
       case "left":
-        itemY = y + item.offset;
-        break;
+        return {
+          x: x,
+          y: y + offset - width / 2,
+          rotation: 90,
+        };
       default:
-        itemX = x + item.offset;
-        itemY = y + item.offset;
+        return {
+          x: x,
+          y: y,
+          rotation: 0,
+        };
     }
-
-    return { x: itemX, y: itemY };
   };
 
-  const initialPosition = calculatePosition();
-  const initialSize = getSize();
+  const pos = getPosition();
+  const isDoor = type === "door";
+  const itemColor = isDoor ? "#8B4513" : "#ADD8E6";
 
-  const getDoorColor = () => (type === "door" ? "#795548" : "#90caf9");
-  const getStrokeColor = () => (isSelected ? "#f50057" : "#424242");
+  const handleDrag = (e) => {
+    const { x, y } = e.target.position();
+    
+    let newPosition = item.position;
+    let newOffset = item.offset;
+    
+    if (item.position === "top" || item.position === "bottom") {
+      newOffset = item.offset + (x - pos.x);
+    } else {
+      newOffset = item.offset + (y - pos.y);
+    }
+    
+    if (item.position === "top" || item.position === "bottom") {
+      newOffset = Math.max(item.width / 2, Math.min(roomData.width - item.width / 2, newOffset));
+    } else {
+      newOffset = Math.max(item.width / 2, Math.min(roomData.length - item.width / 2, newOffset));
+    }
+    
+    onChange({
+      ...item,
+      position: newPosition,
+      offset: newOffset,
+    });
+  };
+
+  const DeleteButton = ({ onClick }) => (
+    <Group x={10} y={-20} onClick={onClick} onTap={onClick}>
+      <Circle radius={10} fill="white" stroke="#f44336" strokeWidth={1} />
+      <Text
+        text="✕"
+        fontSize={12}
+        fill="#f44336"
+        align="center"
+        verticalAlign="middle"
+        x={-5}
+        y={-6}
+      />
+    </Group>
+  );
 
   return (
-    <Group>
+    <Group
+      x={pos.x}
+      y={pos.y}
+      rotation={pos.rotation}
+      onClick={onSelect}
+      onTap={onSelect}
+      draggable
+      onDragMove={handleDrag}
+      onDragEnd={handleDrag}
+    >
       <Rect
-        ref={shapeRef}
-        x={initialPosition.x}
-        y={initialPosition.y}
-        width={initialSize.width}
-        height={initialSize.height}
-        fill={getDoorColor()}
-        stroke={getStrokeColor()}
-        strokeWidth={isSelected ? 2 : 1}
-        shadowBlur={isSelected ? 4 : 0}
-        shadowColor={isSelected ? "rgba(245, 0, 87, 0.4)" : "transparent"}
-        draggable
-        onClick={onSelect}
-        onTap={onSelect}
-        onDragEnd={(e) => {
-          const newX = e.target.x();
-          const newY = e.target.y();
-          let newOffset = 0;
-          let newPosition = item.position;
-
-          const roomRight = roomData.x + roomData.width;
-          const roomBottom = roomData.y + roomData.length;
-
-          const distToLeft = Math.abs(newX - roomData.x);
-          const distToRight = Math.abs(newX - roomRight);
-          const distToTop = Math.abs(newY - roomData.y);
-          const distToBottom = Math.abs(newY - roomBottom);
-
-          const minDist = Math.min(
-            distToLeft,
-            distToRight,
-            distToTop,
-            distToBottom
-          );
-
-          if (minDist === distToLeft) {
-            newPosition = "left";
-            newOffset = newY - roomData.y;
-          } else if (minDist === distToRight) {
-            newPosition = "right";
-            newOffset = newY - roomData.y;
-          } else if (minDist === distToTop) {
-            newPosition = "top";
-            newOffset = newX - roomData.x;
-          } else {
-            newPosition = "bottom";
-            newOffset = newX - roomData.x;
-          }
-          if (newPosition === "top" || newPosition === "bottom") {
-            newOffset = Math.max(
-              0,
-              Math.min(newOffset, roomData.width - item.width)
-            );
-          } else {
-            newOffset = Math.max(
-              0,
-              Math.min(newOffset, roomData.length - item.width)
-            );
-          }
-          onChange({
-            ...item,
-            position: newPosition,
-            offset: newOffset,
-          });
-        }}
-        onTransformEnd={() => {
-          const node = shapeRef.current;
-          const scaleX = node.scaleX();
-          const scaleY = node.scaleY();
-          node.scaleX(1);
-          node.scaleY(1);
-          const newWidth = Math.max(
-            20,
-            Math.min(
-              item.position === "left" || item.position === "right"
-                ? initialSize.height * scaleY
-                : initialSize.width * scaleX,
-              item.position === "top" || item.position === "bottom"
-                ? roomData.width - item.offset
-                : roomData.length - item.offset
-            )
-          );
-
-          onChange({
-            ...item,
-            width: newWidth,
-          });
-        }}
+        width={item.width}
+        height={isDoor ? 10 : 8}
+        fill={itemColor}
+        stroke="#333"
+        strokeWidth={1}
       />
-      {isSelected && (
-        <Transformer
-          ref={trRef}
-          rotateEnabled={false}
-          resizeEnabled={true}
-          anchorFill="#f50057"
-          anchorStroke="#f50057"
-          anchorSize={7}
-          borderStroke="#f50057"
-          borderDash={[3, 3]}
-          boundBoxFunc={(oldBox, newBox) => {
-            if (newBox.width < 20 || newBox.height < 10) {
-              return oldBox;
-            }
-            return newBox;
-          }}
+      
+      {isDoor && (
+        <Rect
+          x={0}
+          y={10}
+          width={item.width}
+          height={1}
+          fill="#8B4513"
+          stroke="#333"
+          strokeWidth={1}
+          dash={[2, 2]}
         />
+      )}
+      
+      {isSelected && (
+        <DeleteButton onClick={() => onDelete(item.id, type)} />
       )}
     </Group>
   );
